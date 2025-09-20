@@ -22,7 +22,6 @@ button { background: red; color: white; border: none; cursor: pointer; margin-to
 </head>
 <body>
 <header>
-<!-- De URL van de afbeelding is aangepast om een relatief pad te gebruiken -->
 <img src="JVC_Logo.png" alt="JVC Cuijk Logo" />
 <button id="logoutBtn" style="display: none;">Afmelden</button>
 </header>
@@ -96,25 +95,17 @@ button { background: red; color: white; border: none; cursor: pointer; margin-to
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Zet logniveau voor debuggen van Firebase
 setLogLevel(&#39;debug&#39;);
 
-// Jouw unieke Firebase-configuratie
-const firebaseConfig = {
-  apiKey: &quot;AIzaSyDy6UTjkp43dmyYOvBxMdZfxxl-UW7OhUk&quot;,
-  authDomain: &quot;jvc-redactie-database.firebaseapp.com&quot;,
-  projectId: &quot;jvc-redactie-database&quot;,
-  storageBucket: &quot;jvc-redactie-database.firebasestorage.app&quot;,
-  messagingSenderId: &quot;775675536234&quot;,
-  appId: &quot;1:775675536234:web:a06128d8d475a8d26efb13&quot;
-};
-
-// Het projectId wordt gebruikt als de app-ID voor Firestore-paden
-const appId = firebaseConfig.projectId;
+// Gebruik de globalen die de omgeving aanlevert
+const appId = typeof __app_id !== &#39;undefined&#39; ? __app_id : &#39;default-app-id&#39;;
+const firebaseConfig = JSON.parse(typeof __firebase_config !== &#39;undefined&#39; ? __firebase_config : &#39;{}&#39;);
+const initialAuthToken = typeof __initial_auth_token !== &#39;undefined&#39; ? __initial_auth_token : null;
 
 let db, auth, storage, userId;
 
@@ -140,11 +131,15 @@ const initializeFirebase = async () =&gt; {
                 logoutBtn.style.display = &#39;block&#39;;
                 console.log(&quot;Gebruiker succesvol aangemeld:&quot;, userId);
             } else {
-                console.log(&quot;Geen gebruiker is ingelogd. Probeer anoniem aan te melden.&quot;);
+                console.log(&quot;Geen gebruiker is ingelogd. Probeer aan te melden.&quot;);
                 try {
-                    await signInAnonymously(auth);
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
                 } catch (signInError) {
-                    console.error(&quot;Fout bij anoniem aanmelden:&quot;, signInError);
+                    console.error(&quot;Fout bij het aanmelden:&quot;, signInError);
                     loginMessage.innerText = &quot;❌ Fout bij het aanmelden. Probeer het opnieuw.&quot;;
                 }
             }
